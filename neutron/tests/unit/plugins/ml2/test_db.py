@@ -51,10 +51,9 @@ class Ml2DBTestCase(testlib_api.SqlTestCase):
             self.ctx.session.add(port)
         return port
 
-    def _setup_neutron_portbinding(self, port_id, vif_type, host):
+    def _setup_neutron_portbinding(self, port_id, host):
         with self.ctx.session.begin(subtransactions=True):
             self.ctx.session.add(models.PortBinding(port_id=port_id,
-                                                    vif_type=vif_type,
                                                     host=host))
 
     def _create_segments(self, segments, is_seg_dynamic=False):
@@ -132,16 +131,14 @@ class Ml2DBTestCase(testlib_api.SqlTestCase):
 
         port = ml2_db.add_port_binding(self.ctx.session, port_id)
         self.assertEqual(port_id, port.port_id)
-        self.assertEqual(portbindings.VIF_TYPE_UNBOUND, port.vif_type)
 
     def test_get_port_binding_host(self):
         network_id = 'foo-network-id'
         port_id = 'foo-port-id'
         host = 'fake_host'
-        vif_type = portbindings.VIF_TYPE_UNBOUND
         self._setup_neutron_network(network_id)
         self._setup_neutron_port(network_id, port_id)
-        self._setup_neutron_portbinding(port_id, vif_type, host)
+        self._setup_neutron_portbinding(port_id, host)
 
         port_host = ml2_db.get_port_binding_host(self.ctx.session, port_id)
         self.assertEqual(host, port_host)
@@ -152,12 +149,11 @@ class Ml2DBTestCase(testlib_api.SqlTestCase):
         port_id_one = 'foo-port-id-one'
         port_id_two = 'foo-port-id-two'
         host = 'fake_host'
-        vif_type = portbindings.VIF_TYPE_UNBOUND
         self._setup_neutron_network(network_id)
         self._setup_neutron_port(network_id, port_id_one)
-        self._setup_neutron_portbinding(port_id_one, vif_type, host)
+        self._setup_neutron_portbinding(port_id_one, host)
         self._setup_neutron_port(network_id, port_id_two)
-        self._setup_neutron_portbinding(port_id_two, vif_type, host)
+        self._setup_neutron_portbinding(port_id_two, host)
 
         port_host = ml2_db.get_port_binding_host(self.ctx.session, port_id)
         self.assertIsNone(port_host)
@@ -208,10 +204,9 @@ class Ml2DBTestCase(testlib_api.SqlTestCase):
         network_id = 'foo-network-id'
         port_id = 'foo-port-id'
         host = 'fake_host'
-        vif_type = portbindings.VIF_TYPE_UNBOUND
         self._setup_neutron_network(network_id)
         self._setup_neutron_port(network_id, port_id)
-        self._setup_neutron_portbinding(port_id, vif_type, host)
+        self._setup_neutron_portbinding(port_id, host)
 
         port, binding = ml2_db.get_locked_port_and_binding(self.ctx.session,
                                                            port_id)
@@ -225,6 +220,141 @@ class Ml2DBTestCase(testlib_api.SqlTestCase):
                                                            port_id)
         self.assertIsNone(port)
         self.assertIsNone(binding)
+
+    def test_binding_result(self):
+        network_id = uuidutils.generate_uuid()
+        port_id = uuidutils.generate_uuid()
+        host = 'test_host'
+        vif_type = 'test_vif_type'
+        vif_details = 'test_vif_details'
+        segment = {api.NETWORK_TYPE: 'vlan',
+                   api.PHYSICAL_NETWORK: 'physnet1',
+                   api.SEGMENTATION_ID: 1}
+
+        self._setup_neutron_network(network_id)
+        ml2_db.add_network_segment(self.ctx.session,
+                                   network_id,
+                                   segment)
+        segments = ml2_db.get_network_segments(self.ctx.session,
+                                               network_id)
+        segment_id = segments[0][api.ID]
+
+        self._setup_neutron_port(network_id, port_id)
+
+        level0 = models.PortBindingLevel(port_id=port_id,
+                                         host=host,
+                                         level=0,
+                                         driver='test_driver_0',
+                                         segment_id=segment_id)
+        level1 = models.PortBindingLevel(port_id=port_id,
+                                         host=host,
+                                         level=1,
+                                         driver='test_driver_1',
+                                         segment_id=segment_id)
+        levels = [level0, level1]
+
+        # Verify no binding result.
+        with self.ctx.session.begin(subtransactions=True):
+            result = ml2_db.get_binding_result(self.ctx.session,
+                                               port_id,
+                                               host)
+            self.assertIsNone(result)
+
+        # Verify no binding levels.
+        with self.ctx.session.begin(subtransactions=True):
+            result_levels = ml2_db.get_binding_levels(self.ctx.session,
+                                                      port_id,
+                                                      host)
+            self.assertEqual(0, len(result_levels))
+
+        # Set binding result.
+        with self.ctx.session.begin(subtransactions=True):
+            result = ml2_db.set_binding_result(self.ctx.session,
+                                               port_id,
+                                               host,
+                                               vif_type,
+                                               vif_details,
+                                               levels)
+            self.assertEqual(port_id, result.port_id)
+            self.assertEqual(host, result.host)
+            self.assertEqual(vif_type, result.vif_type)
+            self.assertEqual(vif_details, result.vif_details)
+
+        # Get and verify binding result.
+        with self.ctx.session.begin(subtransactions=True):
+            result = ml2_db.get_binding_result(self.ctx.session,
+                                               port_id,
+                                               host)
+            self.assertEqual(port_id, result.port_id)
+            self.assertEqual(host, result.host)
+            self.assertEqual(vif_type, result.vif_type)
+            self.assertEqual(vif_details, result.vif_details)
+
+        # Get and verify binding levels.
+        with self.ctx.session.begin(subtransactions=True):
+            result_levels = ml2_db.get_binding_levels(self.ctx.session,
+                                                      port_id,
+                                                      host)
+            self.assertEqual(2, len(result_levels))
+            self.assertEqual(level0, result_levels[0])
+            self.assertEqual(level1, result_levels[1])
+
+        # Clear binding result.
+        with self.ctx.session.begin(subtransactions=True):
+            ml2_db.clear_binding_result(self.ctx.session,
+                                        port_id,
+                                        host)
+
+        # Verify no binding result.
+        with self.ctx.session.begin(subtransactions=True):
+            result = ml2_db.get_binding_result(self.ctx.session,
+                                               port_id,
+                                               host)
+            self.assertIsNone(result)
+
+        # Verify no binding levels.
+        with self.ctx.session.begin(subtransactions=True):
+            result_levels = ml2_db.get_binding_levels(self.ctx.session,
+                                                      port_id,
+                                                      host)
+            self.assertEqual(0, len(result_levels))
+
+    def test_binding_result_no_levels(self):
+        network_id = uuidutils.generate_uuid()
+        port_id = uuidutils.generate_uuid()
+        host = 'test_host'
+        vif_type = 'test_vif_type'
+
+        self._setup_neutron_network(network_id)
+        self._setup_neutron_port(network_id, port_id)
+
+        # Set binding result.
+        with self.ctx.session.begin(subtransactions=True):
+            result = ml2_db.set_binding_result(self.ctx.session,
+                                               port_id,
+                                               host,
+                                               vif_type)
+            self.assertEqual(port_id, result.port_id)
+            self.assertEqual(host, result.host)
+            self.assertEqual(vif_type, result.vif_type)
+            self.assertEqual(None, result.vif_details)
+
+        # Get and verify binding result.
+        with self.ctx.session.begin(subtransactions=True):
+            result = ml2_db.get_binding_result(self.ctx.session,
+                                               port_id,
+                                               host)
+            self.assertEqual(port_id, result.port_id)
+            self.assertEqual(host, result.host)
+            self.assertEqual(vif_type, result.vif_type)
+            self.assertEqual('', result.vif_details)
+
+        # Verify binding levels.
+        with self.ctx.session.begin(subtransactions=True):
+            result_levels = ml2_db.get_binding_levels(self.ctx.session,
+                                                      port_id,
+                                                      host)
+            self.assertEqual(0, len(result_levels))
 
 
 class Ml2DvrDBTestCase(testlib_api.SqlTestCase):
@@ -263,7 +393,6 @@ class Ml2DvrDBTestCase(testlib_api.SqlTestCase):
                 port_id=port_id,
                 host=host_id,
                 router_id=router_id,
-                vif_type=portbindings.VIF_TYPE_UNBOUND,
                 vnic_type=portbindings.VNIC_NORMAL,
                 status='DOWN')
             self.ctx.session.add(record)

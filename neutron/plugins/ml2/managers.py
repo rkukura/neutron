@@ -668,10 +668,10 @@ class MechanismManager(stevedore.named.NamedExtensionManager):
                    'host': context.host,
                    'vnic_type': binding.vnic_type,
                    'profile': binding.profile})
-        context._clear_binding_levels()
+        context._clear_binding_result()
         if not self._bind_port_level(context, 0,
                                      context.network.network_segments):
-            binding.vif_type = portbindings.VIF_TYPE_BINDING_FAILED
+            context._new_vif_type = portbindings.VIF_TYPE_BINDING_FAILED
             LOG.error(_LE("Failed to bind port %(port)s on host %(host)s"),
                       {'port': context.current['id'],
                        'host': context.host})
@@ -725,15 +725,15 @@ class MechanismManager(stevedore.named.NamedExtensionManager):
                                   "binding_levels: %(binding_levels)s",
                                   {'port': port_id,
                                    'host': context.host,
-                                   'vif_type': binding.vif_type,
-                                   'vif_details': binding.vif_details,
+                                   'vif_type': context._new_vif_type,
+                                   'vif_details': context._new_vif_details,
                                    'binding_levels': context.binding_levels})
                         return True
             except Exception:
                 LOG.exception(_LE("Mechanism driver %s failed in "
                                   "bind_port"),
                               driver.name)
-        binding.vif_type = portbindings.VIF_TYPE_BINDING_FAILED
+        context._new_vif_type = portbindings.VIF_TYPE_BINDING_FAILED
         LOG.error(_LE("Failed to bind port %(port)s on host %(host)s"),
                   {'port': context.current['id'],
                    'host': binding.host})

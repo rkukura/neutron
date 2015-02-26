@@ -879,7 +879,7 @@ class TestMl2PortBinding(Ml2PluginV2TestCase,
             mech_context = driver_context.PortContext(
                 plugin, self.context, port['port'],
                 plugin.get_network(self.context, port['port']['network_id']),
-                binding, None)
+                binding, None, None)
         with mock.patch(
             'neutron.plugins.ml2.plugin.' 'db.get_locked_port_and_binding',
             return_value=(None, None)) as glpab_mock,\
@@ -914,7 +914,7 @@ class TestMl2PortBinding(Ml2PluginV2TestCase,
             mech_context = driver_context.PortContext(
                 plugin, self.context, port['port'],
                 plugin.get_network(self.context, port['port']['network_id']),
-                binding, None)
+                binding, None, None)
         with mock.patch('neutron.plugins.ml2.plugin.Ml2Plugin.'
                         '_update_port_dict_binding') as update_mock:
             attrs = {portbindings.HOST_ID: None}
@@ -931,7 +931,7 @@ class TestMl2PortBinding(Ml2PluginV2TestCase,
             mech_context = driver_context.PortContext(
                 plugin, self.context, port['port'],
                 plugin.get_network(self.context, port['port']['network_id']),
-                binding, None)
+                binding, None, None)
         with mock.patch('neutron.plugins.ml2.plugin.Ml2Plugin.'
                         '_update_port_dict_binding') as update_mock:
             attrs = {portbindings.PROFILE: {'e': 5}}
@@ -945,7 +945,6 @@ class TestMl2PortBinding(Ml2PluginV2TestCase,
                             port_id='port_id',
                             host=host_id,
                             router_id='old_router_id',
-                            vif_type=portbindings.VIF_TYPE_OVS,
                             vnic_type=portbindings.VNIC_NORMAL,
                             status=constants.PORT_STATUS_DOWN)
         plugin = manager.NeutronManager.get_plugin()
@@ -958,7 +957,8 @@ class TestMl2PortBinding(Ml2PluginV2TestCase,
             with mock.patch.object(ml2_db, 'get_network_segments',
                                    return_value=[]):
                 mech_context = driver_context.PortContext(
-                    self, context, mock_port, mock_network, binding, None)
+                    self, context, mock_port, mock_network, binding, None,
+                    None)
                 plugin._process_dvr_port_binding(mech_context, context, attrs)
                 self.assertEqual(new_router_id,
                                  mech_context._binding.router_id)
@@ -1618,6 +1618,9 @@ class TestMl2PluginCreateUpdateDeletePort(base.BaseTestCase):
         plugin._get_host_port_if_changed = mock.Mock(
             return_value=new_host_port)
         plugin._check_mac_update_allowed = mock.Mock(return_value=True)
+        plugin._bind_port_if_needed = mock.Mock(
+            side_effect=(lambda c, **kwargs: c))
+        plugin._ml2_extend_port_dict_binding = mock.Mock()
 
         self.notify.side_effect = (
             lambda r, e, t, **kwargs: self._ensure_transaction_is_closed())

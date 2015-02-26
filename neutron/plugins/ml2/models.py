@@ -48,9 +48,7 @@ class PortBinding(model_base.BASEV2):
     """Represent binding-related state of a port.
 
     A port binding stores the port attributes required for the
-    portbindings extension, as well as internal ml2 state such as
-    which MechanismDriver and which segment are used by the port
-    binding.
+    portbindings extension.
     """
 
     __tablename__ = 'ml2_port_bindings'
@@ -65,9 +63,6 @@ class PortBinding(model_base.BASEV2):
                           server_default=portbindings.VNIC_NORMAL)
     profile = sa.Column(sa.String(BINDING_PROFILE_LEN), nullable=False,
                         default='', server_default='')
-    vif_type = sa.Column(sa.String(64), nullable=False)
-    vif_details = sa.Column(sa.String(4095), nullable=False, default='',
-                            server_default='')
 
     # Add a relationship to the Port model in order to instruct SQLAlchemy to
     # eagerly load port bindings
@@ -76,6 +71,30 @@ class PortBinding(model_base.BASEV2):
         backref=orm.backref("port_binding",
                             lazy='joined', uselist=False,
                             cascade='delete'))
+
+
+class PortBindingResult(model_base.BASEV2):
+    """Represent result of binding a port on a host.
+
+    Stores binding information resulting from attempting to bind a
+    port on a specific host. This includes the VIF type and VIF
+    details, the device_id that was bound, and the port's status on
+    that host.
+    """
+
+    __tablename__ = 'ml2_port_binding_results'
+
+    port_id = sa.Column(sa.String(36),
+                        sa.ForeignKey('ports.id', ondelete="CASCADE"),
+                        primary_key=True)
+    host = sa.Column(sa.String(255), nullable=False, primary_key=True)
+    vif_type = sa.Column(sa.String(64), nullable=False)
+    vif_details = sa.Column(sa.String(4095), nullable=False, default='',
+                            server_default='')
+
+    # TODO(rkukura): Complete
+    # device_id = sa.Column(sa.String(36), nullable=True)
+    # status = sa.Column(sa.String(16), nullable=False)
 
 
 class PortBindingLevel(model_base.BASEV2):
@@ -112,9 +131,6 @@ class DVRPortBinding(model_base.BASEV2):
                         primary_key=True)
     host = sa.Column(sa.String(255), nullable=False, primary_key=True)
     router_id = sa.Column(sa.String(36), nullable=True)
-    vif_type = sa.Column(sa.String(64), nullable=False)
-    vif_details = sa.Column(sa.String(4095), nullable=False, default='',
-                            server_default='')
     vnic_type = sa.Column(sa.String(64), nullable=False,
                           default=portbindings.VNIC_NORMAL,
                           server_default=portbindings.VNIC_NORMAL)

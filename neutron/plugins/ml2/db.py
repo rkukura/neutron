@@ -121,9 +121,7 @@ def delete_network_segment(session, segment_id):
 
 def add_port_binding(session, port_id):
     with session.begin(subtransactions=True):
-        record = models.PortBinding(
-            port_id=port_id,
-            vif_type=portbindings.VIF_TYPE_UNBOUND)
+        record = models.PortBinding(port_id=port_id)
         session.add(record)
         return record
 
@@ -151,42 +149,56 @@ def get_locked_port_and_binding(session, port_id):
         return None, None
 
 
-def set_binding_levels(session, levels):
-    if levels:
-        for level in levels:
-            session.add(level)
-        LOG.debug("For port %(port_id)s, host %(host)s, "
-                  "set binding levels %(levels)s",
-                  {'port_id': levels[0].port_id,
-                   'host': levels[0].host,
-                   'levels': levels})
-    else:
-        LOG.debug("Attempted to set empty binding levels")
+def set_binding_result(session, port_id, host,
+                       vif_type, vif_details=None, levels=[]):
+    result = models.PortBindingResult(port_id=port_id, host=host,
+                                      vif_type=vif_type,
+                                      vif_details=vif_details)
+    LOG.debug("Setting port binding result %(result)s with levels %(levels)s",
+              {'result': result, 'levels': levels})
+    session.add(result)
+    for level in levels:
+        session.add(level)
+    return result
+
+
+def get_binding_result(session, port_id, host):
+    try:
+        result = (session.query(models.PortBindingResult).
+                  filter_by(port_id=port_id, host=host).
+                  one())
+        LOG.debug("Got port binding result %s", result)
+        return result
+    except exc.NoResultFound:
+        LOG.debug("Got no binding result for port %(port)s on host %(host)s",
+                  {'port': port_id, 'host': host})
+        return None
 
 
 def get_binding_levels(session, port_id, host):
-    if host:
-        result = (session.query(models.PortBindingLevel).
-                  filter_by(port_id=port_id, host=host).
-                  order_by(models.PortBindingLevel.level).
-                  all())
-        LOG.debug("For port %(port_id)s, host %(host)s, "
-                  "got binding levels %(levels)s",
-                  {'port_id': port_id,
-                   'host': host,
-                   'levels': result})
-        return result
+    levels = (session.query(models.PortBindingLevel).
+              filter_by(port_id=port_id, host=host).
+              order_by(models.PortBindingLevel.level).
+              all())
+    LOG.debug("For port %(port_id)s on host %(host)s, "
+              "got binding levels %(levels)s",
+              {'port_id': port_id,
+               'host': host,
+               'levels': levels})
+    return levels
 
 
-def clear_binding_levels(session, port_id, host):
-    if host:
-        (session.query(models.PortBindingLevel).
-         filter_by(port_id=port_id, host=host).
-         delete())
-        LOG.debug("For port %(port_id)s, host %(host)s, "
-                  "cleared binding levels",
-                  {'port_id': port_id,
-                   'host': host})
+def clear_binding_result(session, port_id, host):
+    LOG.debug("Clearing port binding result for port %(port_id)s on "
+              "host %(host)s",
+              {'port_id': port_id,
+               'host': host})
+    (session.query(models.PortBindingResult).
+     filter_by(port_id=port_id, host=host).
+     delete())
+    (session.query(models.PortBindingLevel).
+     filter_by(port_id=port_id, host=host).
+     delete())
 
 
 def ensure_dvr_port_binding(session, port_id, host, router_id=None):
@@ -201,7 +213,6 @@ def ensure_dvr_port_binding(session, port_id, host, router_id=None):
                 port_id=port_id,
                 host=host,
                 router_id=router_id,
-                vif_type=portbindings.VIF_TYPE_UNBOUND,
                 vnic_type=portbindings.VNIC_NORMAL,
                 status=n_const.PORT_STATUS_DOWN)
             session.add(record)
