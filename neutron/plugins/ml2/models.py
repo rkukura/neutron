@@ -78,6 +78,28 @@ class PortBinding(model_base.BASEV2):
                             cascade='delete'))
 
 
+class PortBindingHost(model_base.BASEV2):
+    """Represent host-specific state of a port binding.
+
+    Stores binding information that may vary by host for distributed
+    ports. This includes the VIF type and details bound on the
+    specified host, the device_id that was bound, and the port's
+    status on that host.
+    """
+
+    __tablename__ = 'ml2_port_binding_hosts'
+
+    port_id = sa.Column(sa.String(36),
+                        sa.ForeignKey('ports.id', ondelete="CASCADE"),
+                        primary_key=True)
+    host = sa.Column(sa.String(255), nullable=False, primary_key=True)
+    vif_type = sa.Column(sa.String(64), nullable=False)
+    vif_details = sa.Column(sa.String(4095), nullable=False, default='',
+                            server_default='')
+    device_id = sa.Column(sa.String(36), nullable=True)
+    status = sa.Column(sa.String(16), nullable=False)
+
+
 class PortBindingLevel(model_base.BASEV2):
     """Represent each level of a port binding.
 
