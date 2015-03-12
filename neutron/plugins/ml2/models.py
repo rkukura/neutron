@@ -96,8 +96,9 @@ class PortBindingHost(model_base.BASEV2):
     vif_type = sa.Column(sa.String(64), nullable=False)
     vif_details = sa.Column(sa.String(4095), nullable=False, default='',
                             server_default='')
-    device_id = sa.Column(sa.String(36), nullable=True)
-    status = sa.Column(sa.String(16), nullable=False)
+    # TODO(rkukura): Complete
+    # device_id = sa.Column(sa.String(36), nullable=True)
+    # status = sa.Column(sa.String(16), nullable=False)
 
 
 class PortBindingLevel(model_base.BASEV2):
