@@ -121,9 +121,7 @@ def delete_network_segment(session, segment_id):
 
 def add_port_binding(session, port_id):
     with session.begin(subtransactions=True):
-        record = models.PortBinding(
-            port_id=port_id,
-            vif_type=portbindings.VIF_TYPE_UNBOUND)
+        record = models.PortBinding(port_id=port_id)
         session.add(record)
         return record
 
@@ -201,7 +199,6 @@ def ensure_dvr_port_binding(session, port_id, host, router_id=None):
                 port_id=port_id,
                 host=host,
                 router_id=router_id,
-                vif_type=portbindings.VIF_TYPE_UNBOUND,
                 vnic_type=portbindings.VNIC_NORMAL,
                 status=n_const.PORT_STATUS_DOWN)
             session.add(record)

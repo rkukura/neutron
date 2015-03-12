@@ -52,10 +52,9 @@ class Ml2DBTestCase(testlib_api.SqlTestCase):
             self.ctx.session.add(port)
         return port
 
-    def _setup_neutron_portbinding(self, port_id, vif_type, host):
+    def _setup_neutron_portbinding(self, port_id, host):
         with self.ctx.session.begin(subtransactions=True):
             self.ctx.session.add(models.PortBinding(port_id=port_id,
-                                                    vif_type=vif_type,
                                                     host=host))
 
     def _create_segments(self, segments, is_seg_dynamic=False):
@@ -133,16 +132,14 @@ class Ml2DBTestCase(testlib_api.SqlTestCase):
 
         port = ml2_db.add_port_binding(self.ctx.session, port_id)
         self.assertEqual(port_id, port.port_id)
-        self.assertEqual(portbindings.VIF_TYPE_UNBOUND, port.vif_type)
 
     def test_get_port_binding_host(self):
         network_id = 'foo-network-id'
         port_id = 'foo-port-id'
         host = 'fake_host'
-        vif_type = portbindings.VIF_TYPE_UNBOUND
         self._setup_neutron_network(network_id)
         self._setup_neutron_port(network_id, port_id)
-        self._setup_neutron_portbinding(port_id, vif_type, host)
+        self._setup_neutron_portbinding(port_id, host)
 
         port_host = ml2_db.get_port_binding_host(self.ctx.session, port_id)
         self.assertEqual(host, port_host)
@@ -153,12 +150,11 @@ class Ml2DBTestCase(testlib_api.SqlTestCase):
         port_id_one = 'foo-port-id-one'
         port_id_two = 'foo-port-id-two'
         host = 'fake_host'
-        vif_type = portbindings.VIF_TYPE_UNBOUND
         self._setup_neutron_network(network_id)
         self._setup_neutron_port(network_id, port_id_one)
-        self._setup_neutron_portbinding(port_id_one, vif_type, host)
+        self._setup_neutron_portbinding(port_id_one, host)
         self._setup_neutron_port(network_id, port_id_two)
-        self._setup_neutron_portbinding(port_id_two, vif_type, host)
+        self._setup_neutron_portbinding(port_id_two, host)
 
         port_host = ml2_db.get_port_binding_host(self.ctx.session, port_id)
         self.assertIsNone(port_host)
@@ -208,10 +204,9 @@ class Ml2DBTestCase(testlib_api.SqlTestCase):
         network_id = 'foo-network-id'
         port_id = 'foo-port-id'
         host = 'fake_host'
-        vif_type = portbindings.VIF_TYPE_UNBOUND
         self._setup_neutron_network(network_id)
         self._setup_neutron_port(network_id, port_id)
-        self._setup_neutron_portbinding(port_id, vif_type, host)
+        self._setup_neutron_portbinding(port_id, host)
 
         port, binding = ml2_db.get_locked_port_and_binding(self.ctx.session,
                                                            port_id)

@@ -65,9 +65,6 @@ class PortBinding(model_base.BASEV2):
                           server_default=portbindings.VNIC_NORMAL)
     profile = sa.Column(sa.String(BINDING_PROFILE_LEN), nullable=False,
                         default='', server_default='')
-    vif_type = sa.Column(sa.String(64), nullable=False)
-    vif_details = sa.Column(sa.String(4095), nullable=False, default='',
-                            server_default='')
 
     # Add a relationship to the Port model in order to instruct SQLAlchemy to
     # eagerly load port bindings
@@ -135,9 +132,6 @@ class DVRPortBinding(model_base.BASEV2):
                         primary_key=True)
     host = sa.Column(sa.String(255), nullable=False, primary_key=True)
     router_id = sa.Column(sa.String(36), nullable=True)
-    vif_type = sa.Column(sa.String(64), nullable=False)
-    vif_details = sa.Column(sa.String(4095), nullable=False, default='',
-                            server_default='')
     vnic_type = sa.Column(sa.String(64), nullable=False,
                           default=portbindings.VNIC_NORMAL,
                           server_default=portbindings.VNIC_NORMAL)
