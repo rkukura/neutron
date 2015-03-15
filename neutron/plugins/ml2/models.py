@@ -48,9 +48,7 @@ class PortBinding(model_base.BASEV2):
     """Represent binding-related state of a port.
 
     A port binding stores the port attributes required for the
-    portbindings extension, as well as internal ml2 state such as
-    which MechanismDriver and which segment are used by the port
-    binding.
+    portbindings extension.
     """
 
     __tablename__ = 'ml2_port_bindings'
@@ -75,16 +73,16 @@ class PortBinding(model_base.BASEV2):
                             cascade='delete'))
 
 
-class PortBindingHost(model_base.BASEV2):
-    """Represent host-specific state of a port binding.
+class PortBindingResult(model_base.BASEV2):
+    """Represent result of binding a port on a host.
 
-    Stores binding information that may vary by host for distributed
-    ports. This includes the VIF type and details bound on the
-    specified host, the device_id that was bound, and the port's
-    status on that host.
+    Stores binding information resulting from attempting to bind a
+    port on a specific host. This includes the VIF type and VIF
+    details, the device_id that was bound, and the port's status on
+    that host.
     """
 
-    __tablename__ = 'ml2_port_binding_hosts'
+    __tablename__ = 'ml2_port_binding_results'
 
     port_id = sa.Column(sa.String(36),
                         sa.ForeignKey('ports.id', ondelete="CASCADE"),
@@ -93,6 +91,7 @@ class PortBindingHost(model_base.BASEV2):
     vif_type = sa.Column(sa.String(64), nullable=False)
     vif_details = sa.Column(sa.String(4095), nullable=False, default='',
                             server_default='')
+
     # TODO(rkukura): Complete
     # device_id = sa.Column(sa.String(36), nullable=True)
     # status = sa.Column(sa.String(16), nullable=False)
