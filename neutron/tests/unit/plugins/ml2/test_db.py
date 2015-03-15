@@ -21,7 +21,6 @@ from neutron import context
 from neutron.db import db_base_plugin_v2
 from neutron.db import l3_db
 from neutron.db import models_v2
-from neutron.extensions import portbindings
 from neutron.openstack.common import uuidutils
 from neutron.plugins.ml2 import db as ml2_db
 from neutron.plugins.ml2 import driver_api as api
