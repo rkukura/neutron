@@ -82,9 +82,10 @@ class ApicBaseSynchronizer(SynchronizerBase):
             _, binding = l2_db.get_locked_port_and_binding(ctx.session,
                                                            port['id'])
             network = self.core_plugin.get_network(ctx, port['network_id'])
+            # REVISIT(rkukura): Are binding result and levels needed?
             mech_context = driver_context.PortContext(self.core_plugin, ctx,
                                                       port, network, binding,
-                                                      [])
+                                                      None, [])
             try:
                 self.driver.create_port_postcommit(mech_context)
             except Exception:
