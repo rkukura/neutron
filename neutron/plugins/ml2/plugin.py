@@ -181,15 +181,19 @@ class Ml2Plugin(db_base_plugin_v2.NeutronDbPluginV2,
         if (attributes.is_attr_set(host) and binding.host != host):
             return mech_context.current
 
-    def _check_mac_update_allowed(self, orig_port, port, binding):
+    def _check_mac_update_allowed(self, orig_port, port, binding_result):
         unplugged_types = (portbindings.VIF_TYPE_BINDING_FAILED,
                            portbindings.VIF_TYPE_UNBOUND)
         new_mac = port.get('mac_address')
         mac_change = (new_mac is not None and
                       orig_port['mac_address'] != new_mac)
-        if (mac_change and binding.vif_type not in unplugged_types):
+        if binding_result:
+            vif_type = binding_result.vif_type
+        else:
+            vif_type = portbindings.VIF_TYPE_UNBOUND
+        if (mac_change and vif_type not in unplugged_types):
             raise exc.PortBound(port_id=orig_port['id'],
-                                vif_type=binding.vif_type,
+                                vif_type=vif_type,
                                 old_mac=orig_port['mac_address'],
                                 new_mac=port['mac_address'])
         return mac_change
@@ -1115,8 +1119,10 @@ class Ml2Plugin(db_base_plugin_v2.NeutronDbPluginV2,
             port_db, binding = db.get_locked_port_and_binding(session, id)
             if not port_db:
                 raise exc.PortNotFound(port_id=id)
+            binding_result = db.get_binding_result(session, id, binding.host)
+            binding_levels = db.get_binding_levels(session, id, binding.host)
             mac_address_updated = self._check_mac_update_allowed(
-                port_db, attrs, binding)
+                port_db, attrs, binding_result)
             need_port_update_notify |= mac_address_updated
             original_port = self._make_port_dict(port_db)
             updated_port = super(Ml2Plugin, self).update_port(context, id,
@@ -1141,8 +1147,6 @@ class Ml2Plugin(db_base_plugin_v2.NeutronDbPluginV2,
             network = self.get_network(context, original_port['network_id'])
             need_port_update_notify |= self._update_extra_dhcp_opts_on_port(
                 context, id, port, updated_port)
-            binding_result = db.get_binding_result(session, id, binding.host)
-            binding_levels = db.get_binding_levels(session, id, binding.host)
             mech_context = driver_context.PortContext(
                 self, context, updated_port, network, binding, binding_result,
                 binding_levels, original_port=original_port)
