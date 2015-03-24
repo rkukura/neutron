@@ -43,6 +43,7 @@ class TestPortContext(base.BaseTestCase):
                                              port,
                                              network,
                                              binding,
+                                             None,
                                              None)
         self.assertEqual('foohost', ctx.host)
 
@@ -62,6 +63,7 @@ class TestPortContext(base.BaseTestCase):
                                              port,
                                              network,
                                              binding,
+                                             None,
                                              None)
         self.assertEqual('host', ctx.host)
 
@@ -80,6 +82,7 @@ class TestPortContext(base.BaseTestCase):
                                              port,
                                              network,
                                              binding,
+                                             None,
                                              None)
         self.assertEqual('foostatus', ctx.status)
 
@@ -99,5 +102,6 @@ class TestPortContext(base.BaseTestCase):
                                              port,
                                              network,
                                              binding,
+                                             None,
                                              None)
         self.assertEqual('status', ctx.status)

@@ -77,21 +77,26 @@ class SubnetContext(MechanismDriverContext, api.SubnetContext):
 class PortContext(MechanismDriverContext, api.PortContext):
 
     def __init__(self, plugin, plugin_context, port, network, binding,
-                 binding_levels, original_port=None):
+                 binding_result, binding_levels, original_port=None):
         super(PortContext, self).__init__(plugin, plugin_context)
         self._port = port
         self._original_port = original_port
         self._network_context = NetworkContext(plugin, plugin_context,
                                                network)
         self._binding = binding
+        self._binding_result = binding_result
         self._binding_levels = binding_levels
         self._segments_to_bind = None
         self._new_bound_segment = None
         self._next_segments_to_bind = None
         if original_port:
+            self._original_binding_result = self._binding_result
             self._original_binding_levels = self._binding_levels
         else:
+            self._original_binding_result = None
             self._original_binding_levels = None
+        self._new_vif_type = None
+        self._new_vif_details = ''
         self._new_port_status = None
 
     # The following methods are for use by the ML2 plugin and are not
@@ -101,8 +106,12 @@ class PortContext(MechanismDriverContext, api.PortContext):
         self._segments_to_bind = segments_to_bind
         self._new_bound_segment = None
         self._next_segments_to_bind = None
+        self._new_vif_type = None
+        self._new_vif_details = ''
+        self._new_port_status = None
 
-    def _clear_binding_levels(self):
+    def _clear_binding_result(self):
+        self._binding_result = None
         self._binding_levels = []
 
     def _push_binding_level(self, binding_level):
@@ -210,8 +219,8 @@ class PortContext(MechanismDriverContext, api.PortContext):
                     status=None):
         # TODO(rkukura) Verify binding allowed, segment in network
         self._new_bound_segment = segment_id
-        self._binding.vif_type = vif_type
-        self._binding.vif_details = jsonutils.dumps(vif_details)
+        self._new_vif_type = vif_type
+        self._new_vif_details = jsonutils.dumps(vif_details)
         self._new_port_status = status
 
     def continue_binding(self, segment_id, next_segments_to_bind):

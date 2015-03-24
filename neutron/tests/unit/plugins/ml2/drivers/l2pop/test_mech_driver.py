@@ -1016,6 +1016,7 @@ class TestL2PopulationMechDriver(base.BaseTestCase):
                                              mock.MagicMock(),
                                              mock.Mock(),
                                              None,
+                                             None,
                                              original_port=original_port)
 
         mech_driver = l2pop_mech_driver.L2populationMechanismDriver()
