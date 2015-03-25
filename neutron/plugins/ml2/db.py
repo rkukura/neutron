@@ -154,7 +154,7 @@ def set_binding_result(session, port_id, host,
     result = models.PortBindingResult(port_id=port_id, host=host,
                                       vif_type=vif_type,
                                       vif_details=vif_details)
-    LOG.debug("Setting port binding result %{result}s with levels %{levels}s",
+    LOG.debug("Setting port binding result %(result)s with levels %(levels)s",
               {'result': result, 'levels': levels})
     session.add(result)
     for level in levels:
@@ -167,10 +167,10 @@ def get_binding_result(session, port_id, host):
         result = (session.query(models.PortBindingResult).
                   filter_by(port_id=port_id, host=host).
                   one())
-        LOG.debug("Got port binding result %{result}s", result)
+        LOG.debug("Got port binding result %(result)s", result)
         return result
     except exc.NoResultFound:
-        LOG.debug("Got no binding result for port %{port}s on host %{host}s",
+        LOG.debug("Got no binding result for port %(port)s on host %(host)s",
                   {'port': port_id, 'host': host})
         return None
 
