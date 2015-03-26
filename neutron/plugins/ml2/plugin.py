@@ -239,9 +239,6 @@ class Ml2Plugin(db_base_plugin_v2.NeutronDbPluginV2,
         # TODO(rkukura): Move up and set changes if device_owner
         # changed.
         if port['device_owner'] == const.DEVICE_OWNER_DVR_INTERFACE:
-            # REVISIT(rkukura): See above.
-            # binding.vif_type = portbindings.VIF_TYPE_DISTRIBUTED
-            # binding.vif_details = ''
             db.clear_binding_result(session, port_id, original_host)
             mech_context._clear_binding_result()
             binding.host = ''
@@ -1184,7 +1181,7 @@ class Ml2Plugin(db_base_plugin_v2.NeutronDbPluginV2,
     def _process_dvr_port_binding(self, mech_context, context, attrs):
         session = mech_context._plugin_context.session
         binding = mech_context._binding
-        binding_result = context._binding_result
+        binding_result = mech_context._binding_result
         port = mech_context.current
         port_id = port['id']
 
@@ -1209,11 +1206,14 @@ class Ml2Plugin(db_base_plugin_v2.NeutronDbPluginV2,
             return
 
         session = context.session
+        # TODO(rkukura): Avoid querying multiple times when already
+        # bound.
         binding = db.get_dvr_port_binding_by_host(session, id, host)
+        binding_result = db.get_binding_result(session, id, host)
         device_id = attrs and attrs.get('device_id')
         router_id = binding and binding.get('router_id')
-        update_required = (not binding or
-            binding.vif_type == portbindings.VIF_TYPE_BINDING_FAILED or
+        update_required = (not binding or not binding_result or
+            binding_result.vif_type == portbindings.VIF_TYPE_BINDING_FAILED or
             router_id != device_id)
         if update_required:
             with session.begin(subtransactions=True):
