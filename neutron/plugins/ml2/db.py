@@ -167,7 +167,7 @@ def get_binding_result(session, port_id, host):
         result = (session.query(models.PortBindingResult).
                   filter_by(port_id=port_id, host=host).
                   one())
-        LOG.debug("Got port binding result %(result)s", result)
+        LOG.debug("Got port binding result %s", result)
         return result
     except exc.NoResultFound:
         LOG.debug("Got no binding result for port %(port)s on host %(host)s",
