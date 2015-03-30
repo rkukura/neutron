@@ -90,7 +90,8 @@ class TestMechanismDriver(api.MechanismDriver):
         assert(vif_type is not None)
 
         if vif_type in (portbindings.VIF_TYPE_UNBOUND,
-                        portbindings.VIF_TYPE_BINDING_FAILED):
+                        portbindings.VIF_TYPE_BINDING_FAILED,
+                        portbindings.VIF_TYPE_DISTRIBUTED):
             if (context.segments_to_bind and
                 context.segments_to_bind[0][api.NETWORK_TYPE] == 'vlan'):
                 # Partially bound.

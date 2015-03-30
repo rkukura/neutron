@@ -15,6 +15,7 @@
 
 import mock
 
+from neutron.common import constants as const
 from neutron import context
 from neutron.extensions import portbindings
 from neutron import manager
@@ -58,10 +59,13 @@ class PortBindingTestCase(test_plugin.NeutronDbPluginV2TestCase):
             self.assertEqual(port_status, 'DOWN')
 
     def _test_port_binding(self, host, vif_type, has_port_filter, bound,
-                           status=None, network_type='local'):
+                           status=None, network_type='local',
+                           device_owner=None):
         mac_address = 'aa:aa:aa:aa:aa:aa'
         host_arg = {portbindings.HOST_ID: host,
                     'mac_address': mac_address}
+        if device_owner:
+            host_arg['device_owner'] = device_owner
         with self.port(name='name', arg_list=(portbindings.HOST_ID,),
                        **host_arg) as port:
             self._check_response(port['port'], vif_type, has_port_filter,
@@ -101,6 +105,12 @@ class PortBindingTestCase(test_plugin.NeutronDbPluginV2TestCase):
         self._test_port_binding("host-ovs-filter-active",
                                 portbindings.VIF_TYPE_OVS,
                                 True, True, 'ACTIVE')
+
+    def test_binding_distributed(self):
+        self._test_port_binding("",
+                                portbindings.VIF_TYPE_DISTRIBUTED,
+                                False, False,
+                                device_owner=const.DEVICE_OWNER_DVR_INTERFACE)
 
     def test_update_port_binding_no_binding(self):
         ctx = context.get_admin_context()
